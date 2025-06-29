@@ -4,4 +4,4 @@
   hosts: all
   become: true 
   roles:
-    - {{ role_name }}
+    - "{{ role_name }}"
