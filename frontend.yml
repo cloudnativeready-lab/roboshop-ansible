@@ -3,7 +3,7 @@
   hosts: all 
   tasks:
   - name: Install nginx
-    ansible.builtin.dnf
+    ansible.builtin.dnf:
       name: nginx
       state: installed
   - name: nginx configuration 
