@@ -16,7 +16,7 @@
 - name: Load Schema
   ansible.builtin.shell: mongosh --host mongodb-dev.shr-eng.com </app/db/master-data.js
 
-- name: Run systemd_setup
-  ansible.builtin.include_role:
+- name: Load SystemD Service
+  ansible.builtin.import_role:
     name: common
-    tasks_from: systemd_setup
+    tasks_from: systemd  
