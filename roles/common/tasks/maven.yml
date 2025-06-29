@@ -1,0 +1,21 @@
+- name: Install Maven
+  ansible.builtin.dnf:
+    name: maven
+    state: installed
+
+- name: Load App Pre-Req
+  ansible.builtin.import_role:
+    name: common
+    tasks_from: app-prereq
+
+- name: Download Dependencies
+  ansible.builtin.shell:  mvn clean package ; mv target/{{component}}-1.0.jar {{component}}.jar
+  args:
+    chdir: /app
+
+- name: Load SystemD Service
+  ansible.builtin.import_role:
+    name: common
+    tasks_from: systemd
+
+

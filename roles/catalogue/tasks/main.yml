@@ -1,0 +1,17 @@
+- name: Load NodeJS
+  ansible.builtin.import_role:
+    name: common
+    tasks_from: nodejs
+
+- name: Copy MongoDB repo file
+  ansible.builtin.copy:
+    src: mongo.repo
+    dest: /etc/yum.repos.d/mongo.repo
+
+- name: Install Mongo Shell
+  ansible.builtin.dnf:
+    state: installed
+    name: mongodb-mongosh
+
+- name: Load Schema
+  ansible.builtin.shell: mongosh --host mongodb-dev.shr-eng.com </app/db/master-data.js
