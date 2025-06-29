@@ -1,0 +1,16 @@
+- name: Disable NodeJS default & Enable nodejs 20
+  ansible.builtin.shell: dnf module disable nodejs -y ; dnf module enable nodejs:20 -y
+
+- name: Install NodeJS
+  ansible.builtin.dnf:
+    name: nodejs
+    state: present
+
+- name: Load App Pre-Requisites
+  ansible.builtin.include_tasks:
+    file: app-prereq.yml
+
+- name: Download APp dependencies
+  ansible.builtin.shell: npm install
+  args:
+    chdir: /app
