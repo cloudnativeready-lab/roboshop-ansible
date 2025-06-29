@@ -2,8 +2,8 @@
   ansible.builtin.include_role:
     name: common
     tasks_from: nodejs
-    
-- name: Run systemd_setup
-  ansible.builtin.include_role:
+
+- name: Load SystemD Service
+  ansible.builtin.import_role:
     name: common
-    tasks_from: systemd_setup    
+    tasks_from: systemd  
