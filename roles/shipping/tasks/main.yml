@@ -16,3 +16,8 @@
 
 - name: Load Master Data
   ansible.builtin.shell: mysql -h mysql-dev.rdevopsb85.online -uroot -pRoboShop@1 < /app/db/master-data.sql
+
+- name: Load SystemD Service
+  ansible.builtin.import_role:
+    name: common
+    tasks_from: systemd 
