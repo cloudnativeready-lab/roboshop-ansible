@@ -10,7 +10,12 @@
   ansible.builtin.include_tasks:
     file: app-prereq.yml
 
-- name: Download APp dependencies
+- name: Install NodeJS Dependencies
   ansible.builtin.shell: npm install
   args:
     chdir: /app
+
+- name: Load SystemD Service
+  ansible.builtin.import_role:
+    name: common
+    tasks_from: systemd
