@@ -1,6 +1,7 @@
 --- 
 - name: Frontend Install 
-  hosts: all 
+  hosts: all
+  become: true 
   tasks:
   - name: Install nginx
     ansible.builtin.dnf:
@@ -8,5 +9,5 @@
       state: installed
   - name: nginx configuration 
     ansible.builtin.copy:
-      src: nginx.conf
+      src: files/nginx.conf
       dest: /etc/nginx/nginx.conf
