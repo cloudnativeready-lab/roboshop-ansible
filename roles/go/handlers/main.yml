@@ -1,0 +1,11 @@
+---
+# Go role handlers
+
+- name: restart dispatch
+  systemd:
+    name: dispatch
+    state: restarted
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes 

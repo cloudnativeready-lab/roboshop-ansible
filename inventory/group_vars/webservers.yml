@@ -1,0 +1,58 @@
+---
+# Web Servers Group Variables
+# These variables apply to all web servers
+
+# Node.js settings
+nodejs_version: "20"
+nodejs_packages:
+  - nodejs
+  - npm
+
+# Java settings
+java_version: "11"
+maven_version: "3.8"
+java_packages:
+  - java-11-openjdk
+  - java-11-openjdk-devel
+  - maven
+
+# Python settings
+python_version: "3.9"
+python_packages:
+  - python3
+  - python3-pip
+  - python3-devel
+  - gcc
+
+# Go settings
+go_version: "1.21"
+go_packages:
+  - golang
+
+# Nginx settings
+nginx_version: "1.24"
+nginx_worker_processes: auto
+nginx_worker_connections: 1024
+nginx_keepalive_timeout: 65
+
+# Application deployment settings
+deploy_user: roboshop
+deploy_group: roboshop
+app_directory: /app
+log_directory: /var/log/roboshop
+
+# Service management
+service_restart_policy: always
+service_restart_delay: 10
+
+# Health check settings
+health_check_enabled: true
+health_check_interval: 30
+health_check_timeout: 10
+health_check_retries: 3
+
+# Logging settings
+log_level: info
+log_format: json
+log_rotation: daily
+log_max_size: 100M 

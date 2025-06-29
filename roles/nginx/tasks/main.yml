@@ -1,0 +1,83 @@
+---
+# Nginx role - Web server and reverse proxy setup
+
+- name: Disable default nginx module
+  dnf:
+    name: nginx
+    state: absent
+  when: ansible_os_family == "RedHat"
+
+- name: Enable nginx module
+  dnf:
+    name: nginx
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install nginx
+  dnf:
+    name: nginx
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Create nginx configuration directory
+  file:
+    path: /etc/nginx/conf.d
+    state: directory
+    owner: nginx
+    group: nginx
+    mode: '0755'
+
+- name: Configure nginx main configuration
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: nginx
+    group: nginx
+    mode: '0644'
+  notify: restart nginx
+
+- name: Configure nginx virtual host
+  template:
+    src: roboshop.conf.j2
+    dest: /etc/nginx/conf.d/roboshop.conf
+    owner: nginx
+    group: nginx
+    mode: '0644'
+  notify: restart nginx
+
+- name: Download frontend artifacts
+  get_url:
+    url: "{{ app_artifacts_url }}/frontend-{{ app_version }}.zip"
+    dest: /tmp/frontend.zip
+    mode: '0644'
+  when: inventory_hostname in groups['webservers']
+
+- name: Extract frontend files
+  unarchive:
+    src: /tmp/frontend.zip
+    dest: /usr/share/nginx/html
+    remote_src: yes
+    owner: nginx
+    group: nginx
+  when: inventory_hostname in groups['webservers']
+
+- name: Remove default nginx content
+  file:
+    path: /usr/share/nginx/html/index.html
+    state: absent
+  when: inventory_hostname in groups['webservers']
+
+- name: Start and enable nginx
+  systemd:
+    name: nginx
+    state: started
+    enabled: yes
+
+- name: Test nginx configuration
+  command: nginx -t
+  register: nginx_test
+  changed_when: false
+
+- name: Display nginx status
+  debug:
+    msg: "Nginx configuration test: {{ nginx_test.stdout }}" 

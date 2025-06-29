@@ -1,0 +1,73 @@
+---
+# MongoDB role - Database setup
+
+- name: Add MongoDB repository
+  template:
+    src: mongo.repo.j2
+    dest: /etc/yum.repos.d/mongo.repo
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Install MongoDB
+  dnf:
+    name: mongodb-org
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Create MongoDB data directory
+  file:
+    path: "{{ mongodb_data_dir }}"
+    state: directory
+    owner: "{{ mongodb_user }}"
+    group: "{{ mongodb_group }}"
+    mode: '0755'
+
+- name: Create MongoDB log directory
+  file:
+    path: "{{ mongodb_log_dir }}"
+    state: directory
+    owner: "{{ mongodb_user }}"
+    group: "{{ mongodb_group }}"
+    mode: '0755'
+
+- name: Configure MongoDB
+  template:
+    src: mongod.conf.j2
+    dest: /etc/mongod.conf
+    owner: "{{ mongodb_user }}"
+    group: "{{ mongodb_group }}"
+    mode: '0644'
+  notify: restart mongod
+
+- name: Start and enable MongoDB
+  systemd:
+    name: mongod
+    state: started
+    enabled: yes
+
+- name: Wait for MongoDB to be ready
+  wait_for:
+    port: "{{ mongodb_port }}"
+    timeout: 60
+
+- name: Install MongoDB client
+  dnf:
+    name: mongodb-mongosh
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Initialize MongoDB databases
+  shell: |
+    mongosh --host {{ mongodb_host }} --eval "
+      use catalogue;
+      db.createCollection('products');
+      use user;
+      db.createCollection('users');
+    "
+  when: inventory_hostname in groups['webservers']
+  ignore_errors: yes
+
+- name: Display MongoDB status
+  debug:
+    msg: "MongoDB is running on port {{ mongodb_port }}" 

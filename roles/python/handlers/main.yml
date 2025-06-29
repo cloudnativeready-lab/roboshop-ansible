@@ -1,0 +1,11 @@
+---
+# Python role handlers
+
+- name: restart payments
+  systemd:
+    name: payments
+    state: restarted
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes 

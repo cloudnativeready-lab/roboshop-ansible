@@ -1,0 +1,13 @@
+[Unit]
+Description = Dispatch Service
+
+[Service]
+User={{ app_user }}
+Environment=AMQP_HOST={{ rabbitmq_host }}
+Environment=AMQP_USER={{ rabbitmq_admin_user }}
+Environment=AMQP_PASS={{ rabbitmq_admin_password }}
+ExecStart={{ app_home }}/dispatch/dispatch
+SyslogIdentifier=dispatch
+
+[Install]
+WantedBy=multi-user.target 

@@ -1,0 +1,51 @@
+---
+# MySQL role - Database setup
+
+- name: Install MySQL Server
+  dnf:
+    name: mysql-server
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Start and enable MySQL
+  systemd:
+    name: mysqld
+    state: started
+    enabled: yes
+
+- name: Wait for MySQL to be ready
+  wait_for:
+    port: "{{ mysql_port }}"
+    timeout: 60
+
+- name: Secure MySQL installation
+  mysql_user:
+    name: root
+    host: localhost
+    password: "{{ mysql_root_password }}"
+    login_unix_socket: /var/lib/mysql/mysql.sock
+    state: present
+
+- name: Create MySQL databases
+  mysql_db:
+    name: "{{ item }}"
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+  loop:
+    - roboshop
+    - shipping
+
+- name: Create MySQL user
+  mysql_user:
+    name: roboshop
+    password: roboshop123
+    priv: '*.*:ALL'
+    host: '%'
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+
+- name: Display MySQL status
+  debug:
+    msg: "MySQL is running on port {{ mysql_port }}" 

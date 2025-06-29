@@ -1,0 +1,64 @@
+---
+# RoboShop Infrastructure Setup Playbook
+# This playbook sets up all infrastructure components
+
+- name: Setup Infrastructure Services
+  hosts: all
+  become: yes
+  gather_facts: yes
+  
+  pre_tasks:
+    - name: Update package cache
+      dnf:
+        update_cache: yes
+      when: ansible_os_family == "RedHat"
+    
+    - name: Install basic packages
+      dnf:
+        name: "{{ system_packages }}"
+        state: present
+      when: ansible_os_family == "RedHat"
+
+  roles:
+    - common
+    - nginx
+    - mongodb
+    - mysql
+    - redis
+    - rabbitmq
+
+  post_tasks:
+    - name: Verify infrastructure services
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - nginx
+        - mongod
+        - mysqld
+        - redis
+        - rabbitmq-server
+      when: item in ansible_facts.services
+    
+    - name: Test database connections
+      uri:
+        url: "http://{{ ansible_default_ipv4.address }}:{{ nginx_port }}/health"
+        method: GET
+        status_code: 200
+      register: health_check
+      retries: 3
+      delay: 10
+      until: health_check.status == 200
+    
+    - name: Display infrastructure status
+      debug:
+        msg: |
+          Infrastructure setup completed!
+          
+          Services running:
+          - Nginx: http://{{ ansible_default_ipv4.address }}:{{ nginx_port }}
+          - MongoDB: {{ mongodb_host }}:{{ mongodb_port }}
+          - MySQL: {{ mysql_host }}:{{ mysql_port }}
+          - Redis: {{ redis_host }}:{{ redis_port }}
+          - RabbitMQ: {{ rabbitmq_host }}:{{ rabbitmq_port }} 

@@ -1,0 +1,21 @@
+---
+# Node.js role handlers
+
+- name: restart user
+  systemd:
+    name: user
+    state: restarted
+
+- name: restart catalogue
+  systemd:
+    name: catalogue
+    state: restarted
+
+- name: restart cart
+  systemd:
+    name: cart
+    state: restarted
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes 

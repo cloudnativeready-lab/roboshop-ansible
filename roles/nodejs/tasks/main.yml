@@ -1,0 +1,102 @@
+---
+# Node.js role - Node.js applications setup
+
+- name: Disable default nodejs module
+  dnf:
+    name: nodejs
+    state: absent
+  when: ansible_os_family == "RedHat"
+
+- name: Enable nodejs module
+  dnf:
+    name: nodejs
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install Node.js
+  dnf:
+    name: "{{ nodejs_packages }}"
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Verify Node.js installation
+  command: node --version
+  register: node_version
+  changed_when: false
+
+- name: Display Node.js version
+  debug:
+    msg: "Node.js version: {{ node_version.stdout }}"
+
+- name: Create Node.js application directories
+  file:
+    path: "{{ app_home }}/{{ item }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'
+  loop:
+    - user
+    - catalogue
+    - cart
+
+- name: Download Node.js application artifacts
+  get_url:
+    url: "{{ app_artifacts_url }}/{{ item }}-{{ app_version }}.zip"
+    dest: "/tmp/{{ item }}.zip"
+    mode: '0644'
+  loop:
+    - user
+    - catalogue
+    - cart
+  when: inventory_hostname in groups['webservers']
+
+- name: Extract Node.js applications
+  unarchive:
+    src: "/tmp/{{ item }}.zip"
+    dest: "{{ app_home }}/{{ item }}"
+    remote_src: yes
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+  loop:
+    - user
+    - catalogue
+    - cart
+  when: inventory_hostname in groups['webservers']
+
+- name: Install Node.js dependencies
+  npm:
+    path: "{{ app_home }}/{{ item }}"
+    state: present
+  loop:
+    - user
+    - catalogue
+    - cart
+  when: inventory_hostname in groups['webservers']
+
+- name: Create systemd service files
+  template:
+    src: "{{ item }}.service.j2"
+    dest: "/etc/systemd/system/{{ item }}.service"
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - user
+    - catalogue
+    - cart
+  notify: reload systemd
+
+- name: Start and enable Node.js services
+  systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  loop:
+    - user
+    - catalogue
+    - cart
+
+- name: Display Node.js services status
+  debug:
+    msg: "Node.js services (user, catalogue, cart) are running" 

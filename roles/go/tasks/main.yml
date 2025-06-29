@@ -1,0 +1,78 @@
+---
+# Go role - Go applications setup
+
+- name: Install Go
+  dnf:
+    name: "{{ go_packages }}"
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Verify Go installation
+  command: go version
+  register: go_version
+  changed_when: false
+
+- name: Display Go version
+  debug:
+    msg: "Go version: {{ go_version.stdout }}"
+
+- name: Create Go application directory
+  file:
+    path: "{{ app_home }}/dispatch"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'
+
+- name: Download dispatch application artifacts
+  get_url:
+    url: "{{ app_artifacts_url }}/dispatch-{{ app_version }}.zip"
+    dest: /tmp/dispatch.zip
+    mode: '0644'
+  when: inventory_hostname in groups['webservers']
+
+- name: Extract dispatch application
+  unarchive:
+    src: /tmp/dispatch.zip
+    dest: "{{ app_home }}/dispatch"
+    remote_src: yes
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+  when: inventory_hostname in groups['webservers']
+
+- name: Initialize Go module
+  command: go mod init dispatch
+  args:
+    chdir: "{{ app_home }}/dispatch"
+  when: inventory_hostname in groups['webservers']
+
+- name: Download Go dependencies
+  command: go get
+  args:
+    chdir: "{{ app_home }}/dispatch"
+  when: inventory_hostname in groups['webservers']
+
+- name: Build Go application
+  command: go build
+  args:
+    chdir: "{{ app_home }}/dispatch"
+  when: inventory_hostname in groups['webservers']
+
+- name: Create dispatch service file
+  template:
+    src: dispatch.service.j2
+    dest: /etc/systemd/system/dispatch.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: reload systemd
+
+- name: Start and enable dispatch service
+  systemd:
+    name: dispatch
+    state: started
+    enabled: yes
+
+- name: Display Go services status
+  debug:
+    msg: "Go service (dispatch) is running" 

@@ -1,0 +1,81 @@
+---
+# RoboShop Complete Deployment Playbook
+# This playbook deploys the entire RoboShop application stack
+
+- name: Deploy RoboShop Complete Stack
+  hosts: all
+  become: yes
+  gather_facts: yes
+  
+  pre_tasks:
+    - name: Update package cache
+      dnf:
+        update_cache: yes
+      when: ansible_os_family == "RedHat"
+    
+    - name: Install basic packages
+      dnf:
+        name: "{{ system_packages }}"
+        state: present
+      when: ansible_os_family == "RedHat"
+    
+    - name: Set timezone
+      timezone:
+        name: "{{ timezone }}"
+    
+    - name: Configure locale
+      locale_gen:
+        name: "{{ locale }}"
+        state: present
+
+  roles:
+    - common
+    - nginx
+    - mongodb
+    - mysql
+    - redis
+    - rabbitmq
+    - nodejs
+    - java
+    - python
+    - go
+
+  post_tasks:
+    - name: Verify all services are running
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - nginx
+        - mongod
+        - mysqld
+        - redis
+        - rabbitmq-server
+        - user
+        - catalogue
+        - cart
+        - shipping
+        - payments
+        - dispatch
+      when: item in ansible_facts.services
+    
+    - name: Display deployment summary
+      debug:
+        msg: |
+          RoboShop deployment completed successfully!
+          
+          Services deployed:
+          - Frontend (Nginx): http://{{ ansible_default_ipv4.address }}:{{ nginx_port }}
+          - User Service: http://{{ ansible_default_ipv4.address }}:{{ app_port }}
+          - Catalogue Service: http://{{ ansible_default_ipv4.address }}:{{ app_port }}
+          - Cart Service: http://{{ ansible_default_ipv4.address }}:{{ app_port }}
+          - Shipping Service: http://{{ ansible_default_ipv4.address }}:{{ app_port }}
+          - Payment Service: http://{{ ansible_default_ipv4.address }}:{{ app_port }}
+          - Dispatch Service: http://{{ ansible_default_ipv4.address }}:{{ app_port }}
+          
+          Databases:
+          - MongoDB: {{ mongodb_host }}:{{ mongodb_port }}
+          - MySQL: {{ mysql_host }}:{{ mysql_port }}
+          - Redis: {{ redis_host }}:{{ redis_port }}
+          - RabbitMQ: {{ rabbitmq_host }}:{{ rabbitmq_port }} 

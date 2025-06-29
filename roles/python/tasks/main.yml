@@ -1,0 +1,66 @@
+---
+# Python role - Python applications setup
+
+- name: Install Python packages
+  dnf:
+    name: "{{ python_packages }}"
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Verify Python installation
+  command: python3 --version
+  register: python_version
+  changed_when: false
+
+- name: Display Python version
+  debug:
+    msg: "Python version: {{ python_version.stdout }}"
+
+- name: Create Python application directory
+  file:
+    path: "{{ app_home }}/payment"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'
+
+- name: Download payment application artifacts
+  get_url:
+    url: "{{ app_artifacts_url }}/payment-{{ app_version }}.zip"
+    dest: /tmp/payment.zip
+    mode: '0644'
+  when: inventory_hostname in groups['webservers']
+
+- name: Extract payment application
+  unarchive:
+    src: /tmp/payment.zip
+    dest: "{{ app_home }}/payment"
+    remote_src: yes
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+  when: inventory_hostname in groups['webservers']
+
+- name: Install Python dependencies
+  pip:
+    requirements: "{{ app_home }}/payment/requirements.txt"
+    virtualenv: "{{ app_home }}/payment/venv"
+  when: inventory_hostname in groups['webservers']
+
+- name: Create payment service file
+  template:
+    src: payment.service.j2
+    dest: /etc/systemd/system/payments.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: reload systemd
+
+- name: Start and enable payment service
+  systemd:
+    name: payments
+    state: started
+    enabled: yes
+
+- name: Display Python services status
+  debug:
+    msg: "Python service (payment) is running" 

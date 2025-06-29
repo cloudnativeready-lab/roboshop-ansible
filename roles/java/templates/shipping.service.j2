@@ -1,0 +1,12 @@
+[Unit]
+Description=Shipping Service
+
+[Service]
+User={{ app_user }}
+Environment=CART_ENDPOINT=cat-dev.shr-eng.com:8080
+Environment=DB_HOST={{ mysql_host }}
+ExecStart=/bin/java -jar /app/shipping/shipping.jar
+SyslogIdentifier=shipping
+
+[Install]
+WantedBy=multi-user.target 

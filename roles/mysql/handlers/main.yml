@@ -1,0 +1,12 @@
+---
+# MySQL role handlers
+
+- name: restart mysqld
+  systemd:
+    name: mysqld
+    state: restarted
+
+- name: reload mysqld
+  systemd:
+    name: mysqld
+    state: reloaded 

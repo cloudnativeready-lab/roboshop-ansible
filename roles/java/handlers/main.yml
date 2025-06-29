@@ -1,0 +1,11 @@
+---
+# Java role handlers
+
+- name: restart shipping
+  systemd:
+    name: shipping
+    state: restarted
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes 

@@ -1,0 +1,117 @@
+---
+# RoboShop Applications Deployment Playbook
+# This playbook deploys all application services
+
+- name: Deploy RoboShop Applications
+  hosts: webservers
+  become: yes
+  gather_facts: yes
+  
+  pre_tasks:
+    - name: Verify infrastructure is ready
+      uri:
+        url: "http://{{ mongodb_host }}:{{ mongodb_port }}"
+        method: GET
+        timeout: 5
+      ignore_errors: yes
+      register: mongodb_check
+    
+    - name: Wait for databases to be ready
+      wait_for:
+        host: "{{ item.host }}"
+        port: "{{ item.port }}"
+        timeout: 60
+      loop:
+        - { host: mongodb_host, port: mongodb_port }
+        - { host: mysql_host, port: mysql_port }
+        - { host: redis_host, port: redis_port }
+        - { host: rabbitmq_host, port: rabbitmq_port }
+      when: mongodb_check.failed
+
+  roles:
+    - nodejs
+    - java
+    - python
+    - go
+
+  post_tasks:
+    - name: Deploy User Service
+      include_role:
+        name: nodejs
+        tasks_from: deploy_user
+      when: "'user' in services | map(attribute='name') | list"
+    
+    - name: Deploy Catalogue Service
+      include_role:
+        name: nodejs
+        tasks_from: deploy_catalogue
+      when: "'catalogue' in services | map(attribute='name') | list"
+    
+    - name: Deploy Cart Service
+      include_role:
+        name: nodejs
+        tasks_from: deploy_cart
+      when: "'cart' in services | map(attribute='name') | list"
+    
+    - name: Deploy Shipping Service
+      include_role:
+        name: java
+        tasks_from: deploy_shipping
+      when: "'shipping' in services | map(attribute='name') | list"
+    
+    - name: Deploy Payment Service
+      include_role:
+        name: python
+        tasks_from: deploy_payment
+      when: "'payment' in services | map(attribute='name') | list"
+    
+    - name: Deploy Dispatch Service
+      include_role:
+        name: go
+        tasks_from: deploy_dispatch
+      when: "'dispatch' in services | map(attribute='name') | list"
+    
+    - name: Verify application services
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - user
+        - catalogue
+        - cart
+        - shipping
+        - payments
+        - dispatch
+      when: item in ansible_facts.services
+    
+    - name: Test application endpoints
+      uri:
+        url: "http://{{ ansible_default_ipv4.address }}:{{ app_port }}/health"
+        method: GET
+        status_code: 200
+      register: app_health_check
+      retries: 3
+      delay: 10
+      until: app_health_check.status == 200
+      loop:
+        - "http://{{ ansible_default_ipv4.address }}:{{ app_port }}/api/user/health"
+        - "http://{{ ansible_default_ipv4.address }}:{{ app_port }}/api/catalogue/health"
+        - "http://{{ ansible_default_ipv4.address }}:{{ app_port }}/api/cart/health"
+        - "http://{{ ansible_default_ipv4.address }}:{{ app_port }}/api/shipping/health"
+        - "http://{{ ansible_default_ipv4.address }}:{{ app_port }}/api/payment/health"
+    
+    - name: Display application deployment status
+      debug:
+        msg: |
+          RoboShop applications deployed successfully!
+          
+          Application services:
+          - User Service: http://{{ ansible_default_ipv4.address }}:{{ app_port }}/api/user
+          - Catalogue Service: http://{{ ansible_default_ipv4.address }}:{{ app_port }}/api/catalogue
+          - Cart Service: http://{{ ansible_default_ipv4.address }}:{{ app_port }}/api/cart
+          - Shipping Service: http://{{ ansible_default_ipv4.address }}:{{ app_port }}/api/shipping
+          - Payment Service: http://{{ ansible_default_ipv4.address }}:{{ app_port }}/api/payment
+          - Dispatch Service: http://{{ ansible_default_ipv4.address }}:{{ app_port }}/api/dispatch
+          
+          Frontend: http://{{ ansible_default_ipv4.address }}:{{ nginx_port }} 

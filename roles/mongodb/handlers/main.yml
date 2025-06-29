@@ -1,0 +1,12 @@
+---
+# MongoDB role handlers
+
+- name: restart mongod
+  systemd:
+    name: mongod
+    state: restarted
+
+- name: reload mongod
+  systemd:
+    name: mongod
+    state: reloaded 

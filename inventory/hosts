@@ -1,0 +1,51 @@
+# RoboShop Ansible Inventory
+# This file defines the hosts and groups for the RoboShop application
+
+[webservers]
+# Web servers hosting the application services
+web1 ansible_host=192.168.1.10 ansible_user=root
+web2 ansible_host=192.168.1.11 ansible_user=root
+
+[databases]
+# Database servers
+db1 ansible_host=192.168.1.20 ansible_user=root
+
+[loadbalancers]
+# Load balancer servers
+lb1 ansible_host=192.168.1.30 ansible_user=root
+
+[monitoring]
+# Monitoring servers (optional)
+mon1 ansible_host=192.168.1.40 ansible_user=root
+
+# Groups for different service types
+[app_servers:children]
+webservers
+
+[db_servers:children]
+databases
+
+[lb_servers:children]
+loadbalancers
+
+# Environment-specific groups
+[dev:children]
+webservers
+databases
+
+[staging:children]
+webservers
+databases
+loadbalancers
+
+[prod:children]
+webservers
+databases
+loadbalancers
+monitoring
+
+# Global variables for all hosts
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+ansible_ssh_common_args='-o StrictHostKeyChecking=no' 

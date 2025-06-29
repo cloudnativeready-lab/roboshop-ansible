@@ -1,0 +1,16 @@
+---
+# Common role handlers
+
+- name: reload firewalld
+  systemd:
+    name: firewalld
+    state: reloaded
+
+- name: restart rsyslog
+  systemd:
+    name: rsyslog
+    state: restarted
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes 

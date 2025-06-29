@@ -1,0 +1,130 @@
+---
+# RoboShop Monitoring Setup Playbook
+# This playbook sets up monitoring and logging
+
+- name: Setup Monitoring and Logging
+  hosts: monitoring
+  become: yes
+  gather_facts: yes
+  
+  vars:
+    monitoring_enabled: true
+  
+  pre_tasks:
+    - name: Update package cache
+      dnf:
+        update_cache: yes
+      when: ansible_os_family == "RedHat"
+
+  tasks:
+    - name: Install monitoring packages
+      dnf:
+        name:
+          - prometheus
+          - grafana
+          - node_exporter
+          - alertmanager
+        state: present
+      when: ansible_os_family == "RedHat"
+    
+    - name: Configure Prometheus
+      template:
+        src: prometheus.yml.j2
+        dest: /etc/prometheus/prometheus.yml
+        owner: prometheus
+        group: prometheus
+        mode: '0644'
+      notify: restart prometheus
+    
+    - name: Configure Grafana
+      template:
+        src: grafana.ini.j2
+        dest: /etc/grafana/grafana.ini
+        owner: grafana
+        group: grafana
+        mode: '0644'
+      notify: restart grafana
+    
+    - name: Start and enable monitoring services
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - prometheus
+        - grafana
+        - node_exporter
+        - alertmanager
+    
+    - name: Configure log aggregation
+      template:
+        src: rsyslog.conf.j2
+        dest: /etc/rsyslog.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart rsyslog
+    
+    - name: Setup log rotation
+      template:
+        src: logrotate.conf.j2
+        dest: /etc/logrotate.d/roboshop
+        owner: root
+        group: root
+        mode: '0644'
+    
+    - name: Create monitoring dashboard
+      template:
+        src: roboshop-dashboard.json.j2
+        dest: /var/lib/grafana/dashboards/roboshop.json
+        owner: grafana
+        group: grafana
+        mode: '0644'
+      notify: restart grafana
+
+  handlers:
+    - name: restart prometheus
+      systemd:
+        name: prometheus
+        state: restarted
+    
+    - name: restart grafana
+      systemd:
+        name: grafana-server
+        state: restarted
+    
+    - name: restart rsyslog
+      systemd:
+        name: rsyslog
+        state: restarted
+
+  post_tasks:
+    - name: Verify monitoring services
+      uri:
+        url: "http://{{ ansible_default_ipv4.address }}:{{ item.port }}/health"
+        method: GET
+        status_code: 200
+      loop:
+        - { port: 9090, service: "Prometheus" }
+        - { port: 3000, service: "Grafana" }
+        - { port: 9100, service: "Node Exporter" }
+        - { port: 9093, service: "Alertmanager" }
+      register: monitoring_health
+      retries: 3
+      delay: 10
+      until: monitoring_health.status == 200
+    
+    - name: Display monitoring status
+      debug:
+        msg: |
+          Monitoring setup completed!
+          
+          Monitoring services:
+          - Prometheus: http://{{ ansible_default_ipv4.address }}:9090
+          - Grafana: http://{{ ansible_default_ipv4.address }}:3000
+          - Node Exporter: http://{{ ansible_default_ipv4.address }}:9100
+          - Alertmanager: http://{{ ansible_default_ipv4.address }}:9093
+          
+          Default credentials:
+          - Grafana: admin/admin
+          - Prometheus: no authentication required 

@@ -1,0 +1,78 @@
+---
+# Common role - Basic system setup tasks
+
+- name: Create roboshop user
+  user:
+    name: "{{ app_user }}"
+    shell: /bin/bash
+    home: "/home/{{ app_user }}"
+    create_home: yes
+    state: present
+
+- name: Create application directory
+  file:
+    path: "{{ app_home }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'
+
+- name: Create log directory
+  file:
+    path: "{{ log_directory }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'
+
+- name: Install EPEL repository
+  dnf:
+    name: epel-release
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install basic packages
+  dnf:
+    name: "{{ system_packages }}"
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Configure firewall
+  firewalld:
+    port: "{{ item }}/tcp"
+    permanent: yes
+    state: enabled
+  loop: "{{ firewall_ports }}"
+  when: firewall_enabled
+  notify: reload firewalld
+
+- name: Configure SELinux
+  seboolean:
+    name: httpd_can_network_connect
+    state: yes
+    persistent: yes
+  when: ansible_selinux.status == "enabled"
+
+- name: Set system limits
+  pam_limits:
+    domain: "{{ app_user }}"
+    limit_type: '-'
+    limit_item: nofile
+    value: 65536
+
+- name: Configure systemd limits
+  template:
+    src: limits.conf.j2
+    dest: /etc/security/limits.d/roboshop.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Setup logrotate for application logs
+  template:
+    src: logrotate.conf.j2
+    dest: /etc/logrotate.d/roboshop
+    owner: root
+    group: root
+    mode: '0644'
+  when: backup_enabled 

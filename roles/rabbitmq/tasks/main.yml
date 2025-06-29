@@ -1,0 +1,60 @@
+---
+# RabbitMQ role - Message queue setup
+
+- name: Add RabbitMQ repository
+  template:
+    src: rabbitmq.repo.j2
+    dest: /etc/yum.repos.d/rabbitmq.repo
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Install RabbitMQ
+  dnf:
+    name: rabbitmq-server
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Start and enable RabbitMQ
+  systemd:
+    name: rabbitmq-server
+    state: started
+    enabled: yes
+
+- name: Wait for RabbitMQ to be ready
+  wait_for:
+    port: "{{ rabbitmq_port }}"
+    timeout: 60
+
+- name: Add RabbitMQ user
+  rabbitmq_user:
+    user: "{{ rabbitmq_admin_user }}"
+    password: "{{ rabbitmq_admin_password }}"
+    vhost: /
+    configure_priv: .*
+    write_priv: .*
+    read_priv: .*
+    state: present
+
+- name: Set RabbitMQ permissions
+  rabbitmq_user:
+    user: "{{ rabbitmq_admin_user }}"
+    vhost: /
+    configure_priv: .*
+    write_priv: .*
+    read_priv: .*
+    state: present
+
+- name: Enable RabbitMQ management plugin
+  command: rabbitmq-plugins enable rabbitmq_management
+  args:
+    creates: /etc/rabbitmq/enabled_plugins
+
+- name: Restart RabbitMQ to enable management plugin
+  systemd:
+    name: rabbitmq-server
+    state: restarted
+
+- name: Display RabbitMQ status
+  debug:
+    msg: "RabbitMQ is running on port {{ rabbitmq_port }}" 

@@ -1,0 +1,107 @@
+---
+# RoboShop Global Variables
+# These variables apply to all hosts
+
+# Application settings
+app_name: roboshop
+app_version: v3
+app_user: roboshop
+app_home: /app
+app_artifacts_url: https://roboshop-artifacts.s3.amazonaws.com
+
+# Database settings
+mongodb_host: mongodb-dev.shr-eng.com
+mysql_host: mysql-dev.shr-eng.com
+redis_host: redis-dev.shr-eng.com
+rabbitmq_host: rabbitmq-dev.shr-eng.com
+
+# Service ports
+nginx_port: 80
+app_port: 8080
+mongodb_port: 27017
+mysql_port: 3306
+redis_port: 6379
+rabbitmq_port: 5672
+
+# Credentials (use vault in production)
+mysql_root_password: "RoboShop@1"
+rabbitmq_user: roboshop
+rabbitmq_password: roboshop123
+
+# Package versions
+nginx_version: "1.24"
+nodejs_version: "20"
+java_version: "11"
+maven_version: "3.8"
+python_version: "3.9"
+redis_version: "7"
+mongodb_version: "7.0"
+
+# Service configurations
+services:
+  - name: user
+    port: 8080
+    technology: nodejs
+    database: mongodb
+    dependencies: []
+  
+  - name: catalogue
+    port: 8080
+    technology: nodejs
+    database: mongodb
+    dependencies: []
+  
+  - name: cart
+    port: 8080
+    technology: nodejs
+    database: redis
+    dependencies: ["catalogue"]
+  
+  - name: shipping
+    port: 8080
+    technology: java
+    database: mysql
+    dependencies: ["cart"]
+  
+  - name: payment
+    port: 8080
+    technology: python
+    database: null
+    dependencies: ["cart", "user"]
+  
+  - name: dispatch
+    port: 8080
+    technology: go
+    database: null
+    dependencies: ["rabbitmq"]
+
+# Environment settings
+environment: dev
+timezone: UTC
+locale: en_US.UTF-8
+
+# System settings
+system_packages:
+  - wget
+  - curl
+  - unzip
+  - git
+  - vim
+  - net-tools
+  - telnet
+
+# Firewall settings
+firewall_enabled: true
+firewall_ports:
+  - 80
+  - 8080
+  - 3306
+  - 27017
+  - 6379
+  - 5672
+
+# Monitoring settings
+monitoring_enabled: false
+log_retention_days: 30
+backup_enabled: true
+backup_retention_days: 7 

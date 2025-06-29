@@ -1,0 +1,51 @@
+---
+# Redis role - Cache setup
+
+- name: Disable default redis module
+  dnf:
+    name: redis
+    state: absent
+  when: ansible_os_family == "RedHat"
+
+- name: Enable redis module
+  dnf:
+    name: redis
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install Redis
+  dnf:
+    name: redis
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Configure Redis
+  template:
+    src: redis.conf.j2
+    dest: /etc/redis.conf
+    owner: redis
+    group: redis
+    mode: '0644'
+  notify: restart redis
+
+- name: Start and enable Redis
+  systemd:
+    name: redis
+    state: started
+    enabled: yes
+
+- name: Wait for Redis to be ready
+  wait_for:
+    port: "{{ redis_port }}"
+    timeout: 30
+
+- name: Test Redis connection
+  redis:
+    login_host: "{{ redis_host }}"
+    login_port: "{{ redis_port }}"
+    command: ping
+  register: redis_test
+
+- name: Display Redis status
+  debug:
+    msg: "Redis is running on port {{ redis_port }}" 
